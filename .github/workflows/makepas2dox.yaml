@@ -1,0 +1,56 @@
+name: Build pas2dox
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y flex g++
+
+      - name: Generate pas2dox.cpp from pas2dox.l
+        run: flex -i -o pas2dox.cpp pas2dox.l
+
+      - name: Build pas2dox binary
+        run: g++ pas2dox.cpp -lstdc++ -o pas2dox
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pas2dox
+          path: pas2dox
+
+  install:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download built binary
+        uses: actions/download-artifact@v4
+        with:
+          name: pas2dox
+
+      - name: Install pas2dox to /usr/local/bin
+        run: sudo cp pas2dox /usr/local/bin/
+
+  clean:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Clean build artifacts
+        run: |
+          rm -f pas2dox.cpp pas2dox
